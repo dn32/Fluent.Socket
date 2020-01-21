@@ -28,10 +28,11 @@ namespace Fluent.Socket
 
         #endregion
 
-        public async Task InitAsync()
+        public async Task InitAsync(Action<FluentSocketServer> connected)
         {
             WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             WebSocketReceiveResult result = null;
+            connected(this);
 
             do
             {
@@ -64,6 +65,12 @@ namespace Fluent.Socket
                 }
             }
             while (!result.CloseStatus.HasValue && !CancellationToken.IsCancellationRequested);
+        }
+
+        public async Task SendData(object obj)
+        {
+            var data = Util.ObjectToByteArray(new FluentMessageContract { Content = obj });
+            await WebSocket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Binary, true, CancellationToken);
         }
 
         #region DISPOSE

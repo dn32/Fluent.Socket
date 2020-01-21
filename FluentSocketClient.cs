@@ -22,7 +22,7 @@ namespace Fluent.Socket
 
         private FluentSocketClient() { }
 
-        public static async Task Initialize(Uri uri, IFluentSocketClientEvents events, CancellationToken cancellationToken)
+        public static void Initialize(Uri uri, IFluentSocketClientEvents events, CancellationToken cancellationToken)
         {
             var instance = new FluentSocketClient
             {
@@ -32,8 +32,8 @@ namespace Fluent.Socket
                 ClientWebSocket = new ClientWebSocket()
             };
 
-            await instance.ConectarSocket();
-            await instance.StartReceivingData();
+            _ = instance.ConectarSocket();
+            _ = instance.StartReceivingData();
         }
 
         public async Task SendData(object obj)

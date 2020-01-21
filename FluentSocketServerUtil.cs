@@ -30,11 +30,10 @@ namespace Fluent.Socket
                             if (context.WebSockets.IsWebSocketRequest)
                             {
                                 var client = new FluentSocketServer(context);
-                                events.ClientConnected(client);
                                 try
                                 {
                                     client.DataReceived = events.DataReceived;
-                                    client.InitAsync().Wait();
+                                    client.InitAsync(events.ClientConnected).Wait();
                                 }
                                 catch (Exception) { }
                                 client.Dispose();
