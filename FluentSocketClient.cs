@@ -13,7 +13,7 @@ namespace Fluent.Socket
 
         private ClientWebSocket ClientWebSocket { get; set; }
         private CancellationToken CancellationToken { get; set; }
-        private Uri Uri { get; set; }
+        public Uri Uri { get; set; }
         private IFluentSocketClientEvents Events { get; set; }
         public int ReconnectInterval { get; set; } = 2000;
         public int PingInterval { get; set; } = 5000;
