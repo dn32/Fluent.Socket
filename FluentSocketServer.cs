@@ -24,7 +24,9 @@ namespace Fluent.Socket
 
         #region ACTIONS
 
-        internal Action<object> DataReceived { get; set; } = (object obj) => Console.WriteLine("Data received!");
+        internal Action<FluentSocketServer, object> DataReceived { get; set; } = (FluentSocketServer fluentSocketServer, object obj) => Console.WriteLine("Data received!");
+
+        internal Action<FluentSocketServer, object> PingReceived { get; set; } = (FluentSocketServer fluentSocketServer, object obj) => Console.WriteLine("Ping received!");
 
         #endregion
 
@@ -50,7 +52,14 @@ namespace Fluent.Socket
                     ms.Seek(0, SeekOrigin.Begin);
 
                     var obj = Util.ByteArrayToObject<FluentMessageContract>(ms.ToArray());
-                    DataReceived(obj?.Content);
+                    if(obj.MessageType == EnumMessageType.PING)
+                    {
+                        PingReceived(this, obj?.Content);
+                    }
+                    else
+                    {
+                        DataReceived(this, obj?.Content);
+                    }
                 }
                 catch (WebSocketException)
                 {
@@ -67,9 +76,9 @@ namespace Fluent.Socket
             while (!result.CloseStatus.HasValue && !CancellationToken.IsCancellationRequested);
         }
 
-        public async Task SendData(object obj)
+        public async Task SendData(FluentMessageContract fluentMessageContract)
         {
-            var data = Util.ObjectToByteArray(new FluentMessageContract { Content = obj });
+            var data = Util.ObjectToByteArray(fluentMessageContract);
             await WebSocket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Binary, true, CancellationToken);
         }
 

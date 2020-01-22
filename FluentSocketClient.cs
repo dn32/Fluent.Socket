@@ -36,9 +36,9 @@ namespace Fluent.Socket
             _ = instance.StartReceivingData();
         }
 
-        public async Task SendData(object obj)
+        public async Task SendData(FluentMessageContract fluentMessageContract)
         {
-            var data = Util.ObjectToByteArray(new FluentMessageContract { Content = obj });
+            var data = Util.ObjectToByteArray(fluentMessageContract);
             await ClientWebSocket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Binary, true, CancellationToken);
         }
 

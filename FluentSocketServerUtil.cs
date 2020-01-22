@@ -33,6 +33,7 @@ namespace Fluent.Socket
                                 try
                                 {
                                     client.DataReceived = events.DataReceived;
+                                    client.PingReceived = events.PingReceived;
                                     client.InitAsync(events.ClientConnected).Wait();
                                 }
                                 catch (Exception) { }

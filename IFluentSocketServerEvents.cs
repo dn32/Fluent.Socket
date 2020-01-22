@@ -2,7 +2,8 @@
 {
     public interface IFluentSocketServerEvents
     {
-        void DataReceived(object data);
+        void DataReceived(FluentSocketServer fluentSocketServer, object data);
+        void PingReceived(FluentSocketServer fluentSocketServer, object data);
         void ClientConnected(FluentSocketServer fluentSocketServer);
         void ClientDisconnected(FluentSocketServer fluentSocketServer);
     }

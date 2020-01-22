@@ -7,7 +7,7 @@ namespace Fluent.Socket
     public class FluentMessageContract
     {
         public object Content { get; set; }
-        public EnumMessageType MessageType { get; set; } = EnumMessageType.DATA;
+        public EnumMessageType MessageType { get; set; }
     }
 
     [Serializable]
