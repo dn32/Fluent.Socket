@@ -8,32 +8,24 @@ using System.Threading.Tasks;
 
 namespace Fluent.Socket
 {
-    public class FluentSocketServer : IDisposable
+    public class FluentSocketServer : FluentSocket, IDisposable
     {
-        private WebSocket WebSocket { get; set; }
-        public HttpContext HttpContext { get; set; }
-        public CancellationToken CancellationToken { get; set; }
-        public string SocketId { get; set; }
+        public new IFluentSocketServerEvents Events => base.Events as IFluentSocketServerEvents;
 
-        public FluentSocketServer(HttpContext context)
+        public HttpContext HttpContext { get; set; }
+
+        public FluentSocketServer(HttpContext context, IFluentSocketServerEvents events, string preIdentifier) : base(preIdentifier)
         {
+            base.Events = events;
             CancellationToken = new CancellationTokenSource().Token;
             HttpContext = context;
-            SocketId = Guid.NewGuid().ToString();
         }
-
-        #region ACTIONS
-
-        internal Action<FluentSocketServer, object> DataReceived { get; set; } = (FluentSocketServer fluentSocketServer, object obj) => Console.WriteLine("Data received!");
-
-        internal Action<FluentSocketServer, object> PingReceived { get; set; } = (FluentSocketServer fluentSocketServer, object obj) => Console.WriteLine("Ping received!");
-
-        #endregion
 
         public async Task InitAsync(Action<FluentSocketServer> connected)
         {
             WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
             WebSocketReceiveResult result = null;
+
             connected(this);
 
             do
@@ -51,15 +43,9 @@ namespace Fluent.Socket
                     while (!result.EndOfMessage);
                     ms.Seek(0, SeekOrigin.Begin);
 
-                    var obj = Util.ByteArrayToObject<FluentMessageContract>(ms.ToArray());
-                    if(obj.MessageType == EnumMessageType.PING)
-                    {
-                        PingReceived(this, obj?.Content);
-                    }
-                    else
-                    {
-                        DataReceived(this, obj?.Content);
-                    }
+                    var message = Util.ByteArrayToObject<FluentMessageContract>(ms.ToArray());
+
+                    await ReceivedMessageFromClientAsync(message);
                 }
                 catch (WebSocketException)
                 {
@@ -76,10 +62,16 @@ namespace Fluent.Socket
             while (!result.CloseStatus.HasValue && !CancellationToken.IsCancellationRequested);
         }
 
-        public async Task SendData(FluentMessageContract fluentMessageContract)
+        private async Task ReceivedMessageFromClientAsync(FluentMessageContract message)
         {
-            var data = Util.ObjectToByteArray(fluentMessageContract);
-            await WebSocket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Binary, true, CancellationToken);
+            if (message.MessageType == EnumMessageType.REQUEST_INFO)
+            {
+                await this.SendData(new FluentMessageContract { Content = Events.GetInitialInformation(this), MessageType = EnumMessageType.REQUIRED_INFORMATION }, CancellationToken);
+            }
+            else
+            {
+                await ByPassAsync(message);
+            }
         }
 
         #region DISPOSE

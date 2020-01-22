@@ -1,10 +1,27 @@
-﻿namespace Fluent.Socket
+﻿
+using System.Threading.Tasks;
+
+namespace Fluent.Socket
 {
-    public interface IFluentSocketServerEvents
+    public interface IFluentSocketEvents
     {
-        void DataReceived(FluentSocketServer fluentSocketServer, object data);
-        void PingReceived(FluentSocketServer fluentSocketServer, object data);
-        void ClientConnected(FluentSocketServer fluentSocketServer);
-        void ClientDisconnected(FluentSocketServer fluentSocketServer);
+        Task DataReceived(FluentSocket fluentSocket, FluentMessageContract fluentMessageContract);
+    }
+
+    public interface IFluentSocketClientEvents : IFluentSocketEvents
+    {
+        void Connecting(FluentSocketClient fluentSocket);
+        Task ConnectedAsync(FluentSocketClient fluentSocket);
+        void LossOfConnection(FluentSocketClient fluentSocket, string message);
+        void PingOk(FluentSocketClient fluentSocket);
+        Task InitialInformationReceived(FluentSocketClient fluentSocket, FluentMessageContract fluentMessageContract);
+    }
+
+    public interface IFluentSocketServerEvents : IFluentSocketEvents
+    {
+        void PingReceived(FluentSocketServer fluentSocket, FluentMessageContract fluentMessageContract);
+        Task ClientConnectedAsync(FluentSocketServer fluentSocket);
+        Task ClientDisconnectedAsync(FluentSocketServer fluentSocket);
+        object GetInitialInformation(FluentSocketServer fluentSocketServer);
     }
 }

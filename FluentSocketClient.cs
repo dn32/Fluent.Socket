@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Net;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -7,39 +9,38 @@ using System.Threading.Tasks;
 
 namespace Fluent.Socket
 {
-    public class FluentSocketClient
+    public class FluentSocketClient : FluentSocket
     {
         #region PROPERTIES
 
-        private ClientWebSocket ClientWebSocket { get; set; }
-        private CancellationToken CancellationToken { get; set; }
         public Uri Uri { get; set; }
-        private IFluentSocketClientEvents Events { get; set; }
+        public string Url { get; set; }
+        private new IFluentSocketClientEvents Events => base.Events as IFluentSocketClientEvents;
         public int ReconnectInterval { get; set; } = 2000;
         public int PingInterval { get; set; } = 5000;
+        public new ClientWebSocket WebSocket => base.WebSocket as ClientWebSocket;
 
         #endregion
 
-        private FluentSocketClient() { }
-
-        public static void Initialize(Uri uri, IFluentSocketClientEvents events, CancellationToken cancellationToken)
+        private FluentSocketClient(IFluentSocketClientEvents events, string preIdentifier, string url) : base(preIdentifier)
         {
-            var instance = new FluentSocketClient
+            base.Events = events;
+            base.WebSocket = new ClientWebSocket();
+            Url = url;
+            Url += Url.Contains("?") ? "&" : "?";
+            Url += $"SocketId={WebUtility.UrlEncode(SocketId)}";
+            Uri = new Uri(Url);
+        }
+
+        public static void Initialize(string url, IFluentSocketClientEvents events, string preIdentifier, CancellationToken cancellationToken)
+        {
+            var instance = new FluentSocketClient(events, preIdentifier, url)
             {
-                Uri = uri,
-                Events = events,
                 CancellationToken = cancellationToken,
-                ClientWebSocket = new ClientWebSocket()
             };
 
             _ = instance.ConectarSocket();
             _ = instance.StartReceivingData();
-        }
-
-        public async Task SendData(FluentMessageContract fluentMessageContract)
-        {
-            var data = Util.ObjectToByteArray(fluentMessageContract);
-            await ClientWebSocket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Binary, true, CancellationToken);
         }
 
         private async Task ConectarSocket()
@@ -48,28 +49,31 @@ namespace Fluent.Socket
             {
                 try
                 {
-                    if (ClientWebSocket.State == WebSocketState.Open)
+                    if (WebSocket.State == WebSocketState.Open)
                     {
                         await Task.Delay(PingInterval);
-                        await PingServer();
+                        await PingServer(this);
                         Events.PingOk(this);
                         continue;
                     }
                     else
                     {
-                        ClientWebSocket?.Dispose();
-                        ClientWebSocket = new ClientWebSocket();
+                        Channels.MyServer = null;
+                        WebSocket?.Dispose();
+                        base.WebSocket = new ClientWebSocket();
                     }
 
                     Events.Connecting(this);
-                    await ClientWebSocket.ConnectAsync(Uri, CancellationToken);
-                    Events.Connected(this);
+                    await WebSocket.ConnectAsync(Uri, CancellationToken);
+                    await this.SendData(new FluentMessageContract { MessageType = EnumMessageType.REQUEST_INFO }, CancellationToken);
+                    await Events.ConnectedAsync(this);
                 }
                 catch (WebSocketException ex)
                 {
+                    Channels.MyServer = null;
                     Events.LossOfConnection(this, ex.Message);
                     await Task.Delay(ReconnectInterval);
-                    ClientWebSocket.Dispose();
+                    WebSocket.Dispose();
                 }
             }
         }
@@ -80,8 +84,19 @@ namespace Fluent.Socket
             {
                 try
                 {
-                    var result = await ReceiveServerData();
-                    if (result != null) Events.DataReceived(this, result);
+                    var message = await ReceiveFromServerData();
+                    if (message != null)
+                    {
+                        if (message.MessageType == EnumMessageType.REQUIRED_INFORMATION)
+                        {
+                            Channels.MyServer = new Tuple<string, FluentSocket>(message.Sender.Last(), this);
+                            await Events.InitialInformationReceived(this, message);
+                        }
+                        else
+                        {
+                            await ByPassAsync(message);
+                        }
+                    }
                 }
                 catch (Exception)
                 {
@@ -91,26 +106,21 @@ namespace Fluent.Socket
             }
         }
 
-        private async Task PingServer()
+        private async Task<FluentMessageContract> ReceiveFromServerData()
         {
-            await SendData(new FluentMessageContract { MessageType = EnumMessageType.PING });
-        }
-
-        private async Task<object> ReceiveServerData()
-        {
-            if (ClientWebSocket == null || ClientWebSocket.State != WebSocketState.Open) return null;
+            if (WebSocket == null || WebSocket.State != WebSocketState.Open) return null;
 
             using var ms = new MemoryStream();
             var buffer = new ArraySegment<byte>(new byte[8192]);
             WebSocketReceiveResult result;
             do
             {
-                result = await ClientWebSocket.ReceiveAsync(buffer, CancellationToken);
+                result = await WebSocket.ReceiveAsync(buffer, CancellationToken);
                 await ms.WriteAsync(buffer.Array, buffer.Offset, result.Count);
             }
             while (!result.EndOfMessage);
 
-            return Util.DeserializeFromStream<FluentMessageContract>(ms)?.Content ?? null;
+            return Util.DeserializeFromStream<FluentMessageContract>(ms);
         }
 
         #region DISPOSE
@@ -132,7 +142,7 @@ namespace Fluent.Socket
         {
             if (disposing)
             {
-                ClientWebSocket?.Dispose();
+                WebSocket?.Dispose();
             }
 
             if (nativeResource != IntPtr.Zero)
