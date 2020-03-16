@@ -46,12 +46,12 @@ namespace Fluent.Socket
                             Channels.OnlineChannels.TryAdd(clientSocketId, client);
                             try
                             {
-                                client.InitAsync((x) => events.ClientConnectedAsync(x).Wait()).Wait();
+                                client.InitAsync((x) => events.ClientConnectedAsync(x, clientSocketId).Wait()).Wait();
                             }
                             catch (Exception) { }
                             client.Dispose();
                             Channels.OnlineChannels.TryRemove(clientSocketId, out _);
-                            await events.ClientDisconnectedAsync(client);
+                            await events.ClientDisconnectedAsync(client, clientSocketId);
                         }
                         else
                         {

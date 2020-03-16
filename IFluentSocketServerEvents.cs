@@ -20,8 +20,8 @@ namespace Fluent.Socket
     public interface IFluentSocketServerEvents : IFluentSocketEvents
     {
         void PingReceived(FluentSocketServer fluentSocket, FluentMessageContract fluentMessageContract);
-        Task ClientConnectedAsync(FluentSocketServer fluentSocket);
-        Task ClientDisconnectedAsync(FluentSocketServer fluentSocket);
+        Task ClientConnectedAsync(FluentSocketServer fluentSocket, string clientSocketId);
+        Task ClientDisconnectedAsync(FluentSocketServer fluentSocket, string clientSocketId);
         object GetInitialInformation(FluentSocketServer fluentSocketServer);
     }
 }
