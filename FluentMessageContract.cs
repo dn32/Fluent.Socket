@@ -6,16 +6,17 @@ namespace Fluent.Socket
     [Serializable]
     public class FluentMessageContract
     {
-        public FluentMessageContract()
+        public FluentMessageContract() { }
+
+        public FluentMessageContract(EnumMessageType messageType) 
         {
-            Bypass = new List<string>();
-            Sender = new List<string>();
+            MessageType = messageType;
         }
 
         public object Content { get; set; }
         public EnumMessageType MessageType { get; set; }
         public bool IsReturn { get; set; }
-        public List<string> Bypass { get; set; }
-        public List<string> Sender { get; private set; }
+        public List<string> Bypass { get; set; } = new List<string>();
+        public List<string> Sender { get; private set; } = new List<string>();
     }
 }

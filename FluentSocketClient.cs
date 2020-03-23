@@ -39,11 +39,11 @@ namespace Fluent.Socket
                 CancellationToken = cancellationToken,
             };
 
-            _ = instance.ConectarSocket();
+            _ = instance.ConectSocket();
             _ = instance.StartReceivingData();
         }
 
-        private async Task ConectarSocket()
+        private async Task ConectSocket()
         {
             while (!CancellationToken.IsCancellationRequested)
             {
@@ -65,7 +65,12 @@ namespace Fluent.Socket
 
                     Events.Connecting(this);
                     await WebSocket.ConnectAsync(Uri, CancellationToken);
-                    await this.SendData(new FluentMessageContract { MessageType = EnumMessageType.REQUEST_INFO }, CancellationToken);
+
+                    var clientData = Events.GetClientData();
+                    var content = ClientIdentityOperations.GetClientData();
+                    content.ClientData = clientData;
+
+                    await this.SendData(new FluentMessageContract { Content = content, MessageType = EnumMessageType.REGISTER }, CancellationToken);
                     await Events.ConnectedAsync(this);
                 }
                 catch (WebSocketException ex)

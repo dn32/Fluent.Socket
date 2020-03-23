@@ -17,6 +17,8 @@ namespace Fluent.Socket
         UNREGISTER = 7,
         SUCCESSFULLY_REGISTERED = 8,
         REQUEST_INFO = 9,
-        REQUIRED_INFORMATION = 10
+        REQUIRED_INFORMATION = 10,
+        INACTIVE_CLIENT = 11,
+        SUCCESS = 12,
     }
 }

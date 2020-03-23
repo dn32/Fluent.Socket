@@ -15,6 +15,7 @@ namespace Fluent.Socket
         void LossOfConnection(FluentSocketClient fluentSocket, string message);
         void PingOk(FluentSocketClient fluentSocket);
         Task InitialInformationReceived(FluentSocketClient fluentSocket, FluentMessageContract fluentMessageContract);
+        object GetClientData();
     }
 
     public interface IFluentSocketServerEvents : IFluentSocketEvents
@@ -22,6 +23,6 @@ namespace Fluent.Socket
         void PingReceived(FluentSocketServer fluentSocket, FluentMessageContract fluentMessageContract);
         Task ClientConnectedAsync(FluentSocketServer fluentSocket, string clientSocketId);
         Task ClientDisconnectedAsync(FluentSocketServer fluentSocket, string clientSocketId);
-        object GetInitialInformation(FluentSocketServer fluentSocketServer);
+        Task<FluentMessageContract> ClientRegister(FluentSocketServer fluentSocketServer,  FluentMessageContract message);
     }
 }

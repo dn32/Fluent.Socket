@@ -42,6 +42,7 @@ namespace Fluent.Socket
                         if (context.WebSockets.IsWebSocketRequest)
                         {
                             var clientSocketId = context.Request.Query["SocketId"].First();
+                            
                             var client = new FluentSocketServer(context, events, preIdentifier);
                             Channels.OnlineChannels.TryAdd(clientSocketId, client);
                             try
