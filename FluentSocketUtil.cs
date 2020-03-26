@@ -13,23 +13,22 @@ namespace Fluent.Socket
     {
         public static async Task SendData(this FluentSocket fluentSocket, FluentMessageContract fluentMessageContract, CancellationToken cancellationToken)
         {
-            fluentMessageContract.Sender.Add(fluentSocket.SocketId);
             var data = Util.ObjectToByteArray(fluentMessageContract);
             await fluentSocket.WebSocket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Binary, true, cancellationToken);
         }
-     
+
         private static WebSocketOptions WebSocketOptions => new WebSocketOptions()
         {
             KeepAliveInterval = TimeSpan.FromSeconds(120),
             ReceiveBufferSize = 4 * 1024
         };
 
-        public static IApplicationBuilder UseFluentWebSocket(this IApplicationBuilder app, Func<HttpContext, bool> autentication, IFluentSocketServerEvents events, string preIdentifier)
+        public static IApplicationBuilder UseFluentWebSocket<T>(this IApplicationBuilder app, Func<HttpContext, bool> autentication, string preIdentifier) where T : IFluentSocketServerEvents, new()
         {
-            return app.UseFluentWebSocket(WebSocketOptions, autentication, events, preIdentifier);
+            return app.UseFluentWebSocket<T>(WebSocketOptions, autentication, preIdentifier);
         }
 
-        public static IApplicationBuilder UseFluentWebSocket(this IApplicationBuilder app, WebSocketOptions options, Func<HttpContext, bool> autentication, IFluentSocketServerEvents events, string preIdentifier)
+        public static IApplicationBuilder UseFluentWebSocket<T>(this IApplicationBuilder app, WebSocketOptions options, Func<HttpContext, bool> autentication, string preIdentifier) where T : IFluentSocketServerEvents, new()
         {
             app = app.UseWebSockets(options);
 
@@ -41,18 +40,20 @@ namespace Fluent.Socket
                     {
                         if (context.WebSockets.IsWebSocketRequest)
                         {
-                            var clientSocketId = context.Request.Query["SocketId"].First();
-                            
+                            var clientSocketId = context.Request.Query["SocketId"].FirstOrDefault();
+                            var events = new T();
                             var client = new FluentSocketServer(context, events, preIdentifier);
+                            events.Initialize(client, clientSocketId, context);
                             Channels.OnlineChannels.TryAdd(clientSocketId, client);
                             try
                             {
-                                client.InitAsync((x) => events.ClientConnectedAsync(x, clientSocketId).Wait()).Wait();
+                                client.InitAsync(context, (x) => events.ClientConnected()).Wait();
                             }
                             catch (Exception) { }
                             client.Dispose();
                             Channels.OnlineChannels.TryRemove(clientSocketId, out _);
-                            await events.ClientDisconnectedAsync(client, clientSocketId);
+                            events.ClientDisconnected();
+                            events.Dispose();
                         }
                         else
                         {

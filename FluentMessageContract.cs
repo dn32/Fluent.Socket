@@ -16,7 +16,5 @@ namespace Fluent.Socket
         public object Content { get; set; }
         public EnumMessageType MessageType { get; set; }
         public bool IsReturn { get; set; }
-        public List<string> Bypass { get; set; } = new List<string>();
-        public List<string> Sender { get; private set; } = new List<string>();
     }
 }

@@ -20,5 +20,8 @@ namespace Fluent.Socket
         REQUIRED_INFORMATION = 10,
         INACTIVE_CLIENT = 11,
         SUCCESS = 12,
+        STREAM_REQUEST = 13,
+        STREAM = 14,
+        STREAM_RESULT_OK = 15,
     }
 }

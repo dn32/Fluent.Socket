@@ -21,9 +21,9 @@ namespace Fluent.Socket
             HttpContext = context;
         }
 
-        public async Task InitAsync(Action<FluentSocketServer> connected)
+        public async Task InitAsync(HttpContext httpContext, Action<FluentSocketServer> connected)
         {
-            WebSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+            WebSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
             WebSocketReceiveResult result = null;
 
             connected(this);
@@ -64,22 +64,12 @@ namespace Fluent.Socket
 
         private async Task ReceivedMessageFromClientAsync(FluentMessageContract message)
         {
-            if (message.MessageType == EnumMessageType.REGISTER)
-            {
-                var resultMessage = await Events.ClientRegister(this, message);
-                await this.SendData(resultMessage, CancellationToken);
-            }
-            //else if (message.MessageType == EnumMessageType.REQUEST_INFO)
-            //{
-            //    await this.SendData(new FluentMessageContract { Content = Events.GetInitialInformation(this), MessageType = EnumMessageType.REQUIRED_INFORMATION }, CancellationToken);
-            //}
-            else
-            {
-                await ByPassAsync(message);
-            }
+            await Events.DataReceived(message);
         }
 
         #region DISPOSE
+
+        public bool Disposed { get; set; } = false;
 
         private IntPtr nativeResource = Marshal.AllocHGlobal(100);
 
@@ -96,6 +86,8 @@ namespace Fluent.Socket
 
         protected virtual void Dispose(bool disposing)
         {
+            Disposed = true;
+
             if (disposing)
             {
                 WebSocket?.Dispose();
