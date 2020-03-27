@@ -23,5 +23,6 @@ namespace Fluent.Socket
         STREAM_REQUEST = 13,
         STREAM = 14,
         STREAM_RESULT_OK = 15,
+        STREAM_RESULT_ERROR = 16,
     }
 }
