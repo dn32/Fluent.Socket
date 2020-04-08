@@ -8,10 +8,8 @@ namespace Fluent.Socket
     {
         public FluentMessageContract() { }
 
-        public FluentMessageContract(EnumMessageType messageType) 
-        {
+        public FluentMessageContract(EnumMessageType messageType) =>
             MessageType = messageType;
-        }
 
         public object Content { get; set; }
         public EnumMessageType MessageType { get; set; }

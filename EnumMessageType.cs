@@ -24,5 +24,6 @@ namespace Fluent.Socket
         STREAM = 14,
         STREAM_RESULT_OK = 15,
         STREAM_RESULT_ERROR = 16,
+        STREAM_COUNT = 17
     }
 }
