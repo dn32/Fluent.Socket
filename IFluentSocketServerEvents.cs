@@ -23,7 +23,6 @@ namespace Fluent.Socket
         void Initialize(FluentSocketServer fluentSocket, string clientSocketId, HttpContext httpContext);
         void ClientConnected() { }
         void ClientDisconnected() { }
-
         void Dispose();
     }
 }

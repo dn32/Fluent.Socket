@@ -54,6 +54,8 @@ namespace Fluent.Socket
                         WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken).Wait();
                     }
 
+                    Events.ClientDisconnected();
+
                     WebSocket.Dispose();
                     Dispose();
                     break;
