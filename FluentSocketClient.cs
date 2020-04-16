@@ -84,10 +84,11 @@ namespace Fluent.Socket
                 try
                 {
                     var message = await ReceiveFromServerData();
-                    if (message != null)
-                    {
+                    if (message == null)
+                        await Task.Delay(200);
+                    else
                         await Events.DataReceived(message);
-                    }
+
                 }
                 catch (Exception)
                 {
