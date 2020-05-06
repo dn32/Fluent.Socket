@@ -21,6 +21,11 @@ namespace Fluent.Socket
             HttpContext = context;
         }
 
+        public async Task CloseConnectionAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+        {
+           await WebSocket.CloseAsync(closeStatus, statusDescription, cancellationToken);
+        }
+
         public async Task InitAsync(HttpContext httpContext, Action<FluentSocketServer> connected)
         {
             WebSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
