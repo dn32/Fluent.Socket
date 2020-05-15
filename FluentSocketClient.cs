@@ -30,6 +30,17 @@ namespace Fluent.Socket
             Uri = new Uri(Url);
         }
 
+        public async Task CloseConnectionAsync()
+        {
+            try
+            {
+                await WebSocket.CloseOutputAsync(WebSocketCloseStatus.Empty, "", new CancellationToken());
+            }
+            catch { }
+
+            WebSocket?.Dispose();
+        }
+
         public static void Initialize(string url, IFluentSocketClientEvents events, string preIdentifier, CancellationToken cancellationToken)
         {
             var instance = new FluentSocketClient(events, preIdentifier, url)

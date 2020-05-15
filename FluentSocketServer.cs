@@ -23,7 +23,14 @@ namespace Fluent.Socket
 
         public async Task CloseConnectionAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
         {
-           await WebSocket.CloseAsync(closeStatus, statusDescription, cancellationToken);
+            try
+            {
+                await WebSocket.CloseOutputAsync(closeStatus, statusDescription, cancellationToken);
+                //await WebSocket.CloseAsync(closeStatus, statusDescription, cancellationToken);
+            }
+            catch { }
+
+            WebSocket?.Dispose();
         }
 
         public async Task InitAsync(HttpContext httpContext, Action<FluentSocketServer> connected)
@@ -56,12 +63,15 @@ namespace Fluent.Socket
                 {
                     if (WebSocket.State == WebSocketState.Open)
                     {
-                        WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken).Wait();
+                        try
+                        {
+                            WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken).Wait();
+                        }
+                        catch { }
                     }
 
                     Events.ClientDisconnected();
-
-                    WebSocket.Dispose();
+                    WebSocket?.Dispose();
                     Dispose();
                     break;
                 }
