@@ -81,7 +81,7 @@ namespace Fluent.Socket
 
         private async Task ReceivedMessageFromClientAsync(FluentMessageContract message)
         {
-            await Events.DataReceived(message);
+            await Events.DataReceived(message.Content);
         }
 
         #region DISPOSE

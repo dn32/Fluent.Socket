@@ -1,9 +1,11 @@
 ﻿using System;
 
-namespace Fluent.Socket {
+namespace Fluent.Socket
+{
 
     [Serializable]
-    public class FluentMessageContract {
+    internal class FluentMessageContract
+    {
         public object Content { get; set; }
         public bool IsReturn { get; set; }
         public bool IsRegister { get; set; }

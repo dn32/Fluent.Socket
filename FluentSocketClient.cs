@@ -61,7 +61,7 @@ namespace Fluent.Socket {
                     await ((ClientWebSocket) base.WebSocket).ConnectAsync (Uri, CancellationToken);
 
                     var clientData = Events.GetClientData ();
-                    await this.SendData (new FluentMessageContract { Content = clientData, IsRegister = true }, CancellationToken);
+                    await this.SendInternalData (new FluentMessageContract { Content = clientData, IsRegister = true }, CancellationToken);
                     Events.Connected ();
                 } catch (WebSocketException ex) {
                     Channels.MyServer = null;
@@ -79,7 +79,7 @@ namespace Fluent.Socket {
                     if (message == null)
                         await Task.Delay (200);
                     else
-                        await Events.DataReceived (message);
+                        await Events.DataReceived (message.Content);
 
                 } catch (Exception) {
                     await Task.Delay (ReconnectInterval);
