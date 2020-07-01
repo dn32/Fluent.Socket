@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 namespace Fluent.Socket {
     public interface IFluentSocketEvents {
         Task DataReceived (object fluentMessageContract);
+        Task DataReceivedRegister (object content);
     }
 
     public interface IFluentSocketClientEvents : IFluentSocketEvents {
