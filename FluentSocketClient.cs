@@ -78,8 +78,6 @@ namespace Fluent.Socket {
                     var message = await ReceiveFromServerData ();
                     if (message == null)
                         await Task.Delay (200);
-                    else if (message.IsRegister)
-                        await Events.DataReceivedRegister (message.Content);
                     else
                         await Events.DataReceived (message.Content);
 
