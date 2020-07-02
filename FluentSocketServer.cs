@@ -65,7 +65,7 @@ namespace Fluent.Socket {
         }
 
         private async Task ReceivedMessageFromClientAsync (FluentMessageContract message) {
-            if (message.IsReturn)
+            if (message.IsRegister)
                 await Events.DataReceivedRegister (message.Content);
             else
                 await Events.DataReceived (message.Content);
