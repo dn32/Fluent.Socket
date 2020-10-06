@@ -6,8 +6,10 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Fluent.Socket {
-    public class FluentSocketClient : FluentSocket {
+namespace Fluent.Socket
+{
+    public class FluentSocketClient : FluentSocket
+    {
         #region PROPERTIES
 
         public Uri Uri { get; set; }
@@ -18,111 +20,137 @@ namespace Fluent.Socket {
 
         #endregion
 
-        private FluentSocketClient (IFluentSocketClientEvents events, string preIdentifier, string url) : base (preIdentifier) {
+        private FluentSocketClient(IFluentSocketClientEvents events, string preIdentifier, string url) : base(preIdentifier)
+        {
             base.Events = events;
-            base.WebSocket = new ClientWebSocket ();
+            base.WebSocket = new ClientWebSocket();
             Url = url;
-            Url += Url.Contains ("?") ? "&" : "?";
+            Url += Url.Contains("?") ? "&" : "?";
             Url += $"SocketId={WebUtility.UrlEncode(SocketId)}";
-            Uri = new Uri (Url);
+            Uri = new Uri(Url);
         }
 
-        public async Task CloseConnectionAsync () {
-            try {
-                await WebSocket.CloseOutputAsync (WebSocketCloseStatus.Empty, "", new CancellationToken ());
-            } catch { }
+        public async Task CloseConnectionAsync()
+        {
+            try
+            {
+                await WebSocket.CloseOutputAsync(WebSocketCloseStatus.Empty, "", new CancellationToken());
+            }
+            catch { }
 
-            WebSocket?.Dispose ();
+            WebSocket?.Dispose();
         }
 
-        public static void Initialize (string url, IFluentSocketClientEvents events, string preIdentifier, CancellationToken cancellationToken) {
-            var instance = new FluentSocketClient (events, preIdentifier, url) {
+        public static void Initialize(string url, IFluentSocketClientEvents events, string preIdentifier, CancellationToken cancellationToken)
+        {
+            var instance = new FluentSocketClient(events, preIdentifier, url)
+            {
                 CancellationToken = cancellationToken,
             };
 
-            events.Initialize (instance, instance.SocketId);
+            events.Initialize(instance, instance.SocketId);
 
-            _ = instance.ConectSocket ();
-            _ = instance.StartReceivingData ();
+            _ = instance.ConectSocket();
+            _ = instance.StartReceivingData();
         }
 
-        private async Task ConectSocket () {
-            while (!CancellationToken.IsCancellationRequested) {
-                try {
-                    if (base.WebSocket.State == WebSocketState.Open) {
-                        await Task.Delay (PingInterval);
+        private async Task ConectSocket()
+        {
+            while (!CancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    if (base.WebSocket.State == WebSocketState.Open)
+                    {
+                        await Task.Delay(PingInterval);
                         continue;
-                    } else {
-                        Channels.MyServer = null;
-                        base.WebSocket?.Dispose ();
-                        base.WebSocket = new ClientWebSocket ();
                     }
-                    Events.Connecting ();
-                    await ((ClientWebSocket) base.WebSocket).ConnectAsync (Uri, CancellationToken);
+                    else
+                    {
+                        Channels.MyServer = null;
+                        base.WebSocket?.Dispose();
+                        base.WebSocket = new ClientWebSocket();
+                    }
+                    Events.Connecting();
+                    await ((ClientWebSocket)base.WebSocket).ConnectAsync(Uri, CancellationToken);
 
-                    var clientData = Events.GetClientData ();
-                    await this.SendInternalData (new FluentMessageContract { Content = clientData, IsRegister = true }, CancellationToken);
-                    Events.Connected ();
-                } catch (WebSocketException ex) {
+                    var clientData = Events.GetClientData();
+                    await this.SendInternalData(new FluentMessageContract { Content = clientData, IsRegister = true }, CancellationToken);
+                    Events.Connected();
+                }
+                catch (WebSocketException ex)
+                {
                     Channels.MyServer = null;
-                    Events.LossOfConnection (ex.Message);
-                    await Task.Delay (ReconnectInterval);
-                    base.WebSocket.Dispose ();
+                    Events.LossOfConnection(ex.Message);
+                    await Task.Delay(ReconnectInterval);
+                    base.WebSocket.Dispose();
                 }
             }
         }
 
-        private async Task StartReceivingData () {
-            while (!CancellationToken.IsCancellationRequested) {
-                try {
-                    var message = await ReceiveFromServerData ();
+        private async Task StartReceivingData()
+        {
+            while (!CancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var message = await ReceiveFromServerData();
                     if (message == null)
-                        await Task.Delay (200);
+                        await Task.Delay(200);
                     else
-                        await Events.DataReceived (message.Content);
+                        await Events.DataReceived(message.Content);
 
-                } catch (Exception) {
-                    await Task.Delay (ReconnectInterval);
+                }
+                catch (Exception)
+                {
+                    await Task.Delay(ReconnectInterval);
                     continue;
                 }
             }
         }
 
-        private async Task<FluentMessageContract> ReceiveFromServerData () {
+        private async Task<FluentMessageContract> ReceiveFromServerData()
+        {
             if (WebSocket == null || WebSocket.State != WebSocketState.Open) return null;
 
-            using var ms = new MemoryStream ();
-            var buffer = new ArraySegment<byte> (new byte[8192]);
+            using var ms = new MemoryStream();
+            var buffer = new ArraySegment<byte>(new byte[8192]);
             WebSocketReceiveResult result;
-            do {
-                result = await WebSocket.ReceiveAsync (buffer, CancellationToken);
-                await ms.WriteAsync (buffer.Array, buffer.Offset, result.Count);
+            do
+            {
+                result = await WebSocket.ReceiveAsync(buffer, CancellationToken);
+                await ms.WriteAsync(buffer.Array, buffer.Offset, result.Count);
             }
             while (!result.EndOfMessage);
 
-            return Util.DeserializeFromStream<FluentMessageContract> (ms);
+            return Util.DeserializeFromStream<FluentMessageContract>(ms);
         }
 
         #region DISPOSE
 
-        private IntPtr nativeResource = Marshal.AllocHGlobal (100);
+        private IntPtr nativeResource = Marshal.AllocHGlobal(100);
 
-        ~FluentSocketClient () {
-            Dispose (false);
+        ~FluentSocketClient()
+        {
+            Dispose(false);
         }
 
-        public void Dispose () {
-            Dispose (true);
-            GC.SuppressFinalize (this);
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose (bool disposing) {
-            if (disposing) {
-                WebSocket?.Dispose ();
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                WebSocket?.Dispose();
             }
 
-            if (nativeResource != IntPtr.Zero) {
-                Marshal.FreeHGlobal (nativeResource);
+            if (nativeResource != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(nativeResource);
                 nativeResource = IntPtr.Zero;
             }
         }
