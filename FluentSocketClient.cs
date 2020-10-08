@@ -74,12 +74,13 @@ namespace Fluent.Socket
                         base.WebSocket?.Dispose();
                         base.WebSocket = new ClientWebSocket();
                     }
-                    Events.Connecting();
+
+                    await Events.Connecting();
                     await ((ClientWebSocket)base.WebSocket).ConnectAsync(Uri, CancellationToken);
 
                     var clientData = Events.GetClientData();
                     await this.SendInternalData(new FluentMessageContract { Content = clientData, IsRegister = true }, CancellationToken);
-                    Events.Connected();
+                    await Events.Connected();
                 }
                 catch (WebSocketException ex)
                 {

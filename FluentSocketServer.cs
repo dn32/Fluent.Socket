@@ -70,7 +70,7 @@ namespace Fluent.Socket
                         catch { }
                     }
 
-                    Events.ClientDisconnected();
+                    await Events.ClientDisconnected();
                     WebSocket?.Dispose();
                     Dispose();
                     break;

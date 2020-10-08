@@ -53,7 +53,7 @@ namespace Fluent.Socket
                             Channels.OnlineChannels.TryAdd(clientSocketId, client);
                             try
                             {
-                                await client.InitAsync(context, (x) => events.ClientConnected());
+                                await client.InitAsync(context, async (x) => await events.ClientConnected());
                             }
                             catch (Exception ex)
                             {
@@ -63,7 +63,7 @@ namespace Fluent.Socket
                             {
                                 client.Dispose();
                                 Channels.OnlineChannels.TryRemove(clientSocketId, out _);
-                                events.ClientDisconnected();
+                                await events.ClientDisconnected();
                                 events.Dispose();
                             }
                         }
