@@ -12,6 +12,7 @@ namespace Fluent.Socket
         public CancellationToken CancellationToken { get; set; }
         public string SocketId { get; set; }
         public virtual IFluentSocketEvents Events { get; set; }
+        public bool Finished { get; set; }
 
         #endregion
 

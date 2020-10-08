@@ -34,6 +34,7 @@ namespace Fluent.Socket
         {
             try
             {
+                Finished = true;
                 await WebSocket.CloseOutputAsync(WebSocketCloseStatus.Empty, "", new CancellationToken());
             }
             catch { }
@@ -67,6 +68,8 @@ namespace Fluent.Socket
                     }
                     else
                     {
+                        if (Finished) return;
+
                         Channels.MyServer = null;
                         base.WebSocket?.Dispose();
                         base.WebSocket = new ClientWebSocket();
@@ -92,6 +95,7 @@ namespace Fluent.Socket
         {
             while (!CancellationToken.IsCancellationRequested)
             {
+                if (Finished) return;
                 try
                 {
                     var message = await ReceiveFromServerData();
