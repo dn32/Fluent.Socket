@@ -4,6 +4,7 @@ namespace Fluent.Socket
 {
     public interface IFluentSocketEvents
     {
-        Task DataReceived(object fluentMessageContract);
+        Task DataReceived(object content);
+        Task<object> DataReceivedAndWait(object content);
     }
 }

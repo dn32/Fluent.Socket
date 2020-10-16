@@ -2,9 +2,12 @@
 using System.IO;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Fluent.Socket.Contracts;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 
 namespace Fluent.Socket
 {
@@ -14,11 +17,12 @@ namespace Fluent.Socket
 
         public HttpContext HttpContext { get; set; }
 
-        public FluentSocketServer(HttpContext context, IFluentSocketServerEvents events, string preIdentifier) : base(preIdentifier)
+        public FluentSocketServer(HttpContext context, IFluentSocketServerEvents events, string preIdentifier, bool useJson = false) : base(preIdentifier)
         {
             base.Events = events;
             CancellationToken = new CancellationTokenSource().Token;
             HttpContext = context;
+            UseJson = useJson;
         }
 
         public async Task CloseConnectionAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
@@ -55,7 +59,18 @@ namespace Fluent.Socket
                     while (!result.EndOfMessage);
                     ms.Seek(0, SeekOrigin.Begin);
 
-                    var message = Util.ByteArrayToObject<FluentMessageContract>(ms.ToArray());
+                    FluentMessageContractBase message;
+
+                    if (UseJson)
+                    {
+                        var json = Encoding.ASCII.GetString(ms.ToArray());
+                        if (string.IsNullOrWhiteSpace(json)) return;
+                        message = JsonConvert.DeserializeObject<FluentMessageContractBase>(json);
+                    }
+                    else
+                    {
+                        message = Util.ByteArrayToObject<FluentMessageContractBase>(ms.ToArray());
+                    }
 
                     await ReceivedMessageFromClientAsync(message);
                 }
@@ -79,12 +94,27 @@ namespace Fluent.Socket
             while (!result.CloseStatus.HasValue && !CancellationToken.IsCancellationRequested);
         }
 
-        private async Task ReceivedMessageFromClientAsync(FluentMessageContract message)
+        private async Task ReceivedMessageFromClientAsync(FluentMessageContractBase message)
         {
-            if (message.IsRegister)
-                await Events.DataReceivedRegister(message.Content);
-            else
-                await Events.DataReceived(message.Content);
+            if (message is FluentRegisterMessageContract register)
+            {
+                await Events.DataReceivedRegister(register.Content);
+            }
+            else if (message is FluentWaitMessageContract waitMesssage)
+            {
+                var returnContent = await Events.DataReceivedAndWait(waitMesssage.Content);
+                var json = JsonConvert.SerializeObject(returnContent);
+                var returnContract = new FluentReturnMessageContract(json) { OriginalRequestId = waitMesssage.RequestId };
+                await this.SendInternalData(returnContract, CancellationToken);
+            }
+            else if (message is FluentDefaultMessageContract defaultMessage)
+            {
+                await Events.DataReceived(defaultMessage.Content);
+            }
+            else if (message is FluentReturnMessageContract returnMessage)
+            {
+                await FluentSocketUtil.ReturnReceivedFromClient(returnMessage);
+            }
         }
 
         #region DISPOSE

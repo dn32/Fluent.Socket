@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Fluent.Socket.Contracts;
+using Newtonsoft.Json;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.WebSockets;
@@ -42,11 +44,12 @@ namespace Fluent.Socket
             WebSocket?.Dispose();
         }
 
-        public static void Initialize(string url, IFluentSocketClientEvents events, string preIdentifier, CancellationToken cancellationToken)
+        public static void Initialize(string url, IFluentSocketClientEvents events, string preIdentifier, CancellationToken cancellationToken, bool useJson = false)
         {
             var instance = new FluentSocketClient(events, preIdentifier, url)
             {
                 CancellationToken = cancellationToken,
+                UseJson = useJson
             };
 
             events.Initialize(instance, instance.SocketId);
@@ -79,13 +82,13 @@ namespace Fluent.Socket
                     await ((ClientWebSocket)base.WebSocket).ConnectAsync(Uri, CancellationToken);
 
                     var clientData = Events.GetClientData();
-                    await this.SendInternalData(new FluentMessageContract { Content = clientData, IsRegister = true }, CancellationToken);
+                    await this.SendInternalData(new FluentRegisterMessageContract(clientData), CancellationToken);
                     await Events.Connected();
                 }
                 catch (WebSocketException ex)
                 {
                     Channels.MyServer = null;
-                    Events.LossOfConnection(ex.Message);
+                    await Events.LossOfConnection(ex.Message);
                     await Task.Delay(ReconnectInterval);
                     base.WebSocket.Dispose();
                 }
@@ -101,12 +104,26 @@ namespace Fluent.Socket
                 {
                     var message = await ReceiveFromServerData();
                     if (message == null)
+                    {
                         await Task.Delay(200);
-                    else
+                    }
+                    else if (message is FluentDefaultMessageContract default_)
+                    {
                         await Events.DataReceived(message.Content);
-
+                    }
+                    else if (message is FluentWaitMessageContract waitMesssage)
+                    {
+                        var returnContent = await Events.DataReceivedAndWait(waitMesssage.Content);
+                        var returnContentObj = JsonConvert.SerializeObject(returnContent);
+                        var returnContract = new FluentReturnMessageContract(returnContentObj) { OriginalRequestId = waitMesssage.RequestId };
+                        await this.SendInternalData(returnContract, CancellationToken);
+                    }
+                    else if (message is FluentReturnMessageContract returnMessage)
+                    {
+                        await FluentSocketUtil.ReturnReceivedFromClient(returnMessage);
+                    }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     await Task.Delay(ReconnectInterval);
                     continue;
@@ -114,7 +131,7 @@ namespace Fluent.Socket
             }
         }
 
-        private async Task<FluentMessageContract> ReceiveFromServerData()
+        private async Task<FluentMessageContractBase> ReceiveFromServerData()
         {
             if (WebSocket == null || WebSocket.State != WebSocketState.Open) return null;
 
@@ -128,7 +145,7 @@ namespace Fluent.Socket
             }
             while (!result.EndOfMessage);
 
-            return Util.DeserializeFromStream<FluentMessageContract>(ms);
+            return Util.DeserializeFromStream<FluentMessageContractBase>(ms);
         }
 
         #region DISPOSE

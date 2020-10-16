@@ -7,7 +7,7 @@ namespace Fluent.Socket
         void Initialize(FluentSocketClient fluentSocket, string clientSocketId);
         async Task Connecting() => await Task.CompletedTask;
         async Task Connected() => await Task.CompletedTask;
-        void LossOfConnection(string errorMessage);
+        async Task LossOfConnection(string errorMessage) => await Task.CompletedTask;
         object GetClientData();
     }
 }
