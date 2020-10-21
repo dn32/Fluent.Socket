@@ -39,6 +39,7 @@ namespace Fluent.Socket
 
         internal static object DeserializeFromStream(this MemoryStream stream)
         {
+            if (stream.Length == 0) return null;
             var formatter = new BinaryFormatter();
             stream.Seek(0, SeekOrigin.Begin);
             return formatter.Deserialize(stream);

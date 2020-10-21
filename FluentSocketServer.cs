@@ -74,21 +74,26 @@ namespace Fluent.Socket
 
                     await ReceivedMessageFromClientAsync(message);
                 }
-                catch (WebSocketException)
+                catch (Exception ex)
                 {
-                    if (WebSocket.State == WebSocketState.Open)
+                    if (ex is OperationCanceledException || ex is WebSocketException)
                     {
-                        try
+                        if (WebSocket.State == WebSocketState.Open)
                         {
-                            await WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken);
+                            try
+                            {
+                                await WebSocket.CloseAsync(WebSocketCloseStatus.InternalServerError, "", CancellationToken);
+                            }
+                            catch { }
                         }
-                        catch { }
+
+                        await Events.ClientDisconnected();
+                        WebSocket?.Dispose();
+                        Dispose();
+                        break;
                     }
 
-                    await Events.ClientDisconnected();
-                    WebSocket?.Dispose();
-                    Dispose();
-                    break;
+                    throw;
                 }
             }
             while (!result.CloseStatus.HasValue && !CancellationToken.IsCancellationRequested);

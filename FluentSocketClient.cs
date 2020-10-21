@@ -78,19 +78,27 @@ namespace Fluent.Socket
                         base.WebSocket = new ClientWebSocket();
                     }
 
-                    await Events.Connecting();
+                    await Events.ConnectingAsync();
                     await ((ClientWebSocket)base.WebSocket).ConnectAsync(Uri, CancellationToken);
 
                     var clientData = Events.GetClientData();
                     await this.SendInternalData(new FluentRegisterMessageContract(clientData), CancellationToken);
-                    await Events.Connected();
+                    await Events.ConnectedAsync();
                 }
-                catch (WebSocketException ex)
+                catch (Exception ex)
                 {
-                    Channels.MyServer = null;
-                    await Events.LossOfConnection(ex.Message);
-                    await Task.Delay(ReconnectInterval);
-                    base.WebSocket.Dispose();
+                    Console.Error.WriteLine(ex.Message);
+
+                    if (ex is OperationCanceledException || ex is WebSocketException)
+                    {
+                        Channels.MyServer = null;
+                        await Events.LossOfConnectionAsync(ex.Message);
+                        if (!CancellationToken.IsCancellationRequested)
+                            await Task.Delay(ReconnectInterval);
+                        base.WebSocket.Dispose();
+                    }
+
+                    throw;
                 }
             }
         }
@@ -123,7 +131,7 @@ namespace Fluent.Socket
                         await FluentSocketUtil.ReturnReceivedFromClient(returnMessage);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception _)
                 {
                     await Task.Delay(ReconnectInterval);
                     continue;
