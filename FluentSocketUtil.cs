@@ -2,6 +2,7 @@
 using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
@@ -14,18 +15,11 @@ using Newtonsoft.Json;
 
 namespace Fluent.Socket
 {
-    public class RequesInProgress
-    {
-        public SemaphoreSlim SemaphoreSlim { get; set; }
-        public string ReturnJsonContent { get; set; }
-        public string RequestId { get; set; }
-        public TimeSpan TimeOut { get; set; }
-    }
-
     public static class FluentSocketUtil
     {
-        private static readonly TimeSpan DefaultTimeOutRequest = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan DefaultTimeOutRequest = TimeSpan.FromSeconds(20);
         private static readonly ConcurrentDictionary<string, RequesInProgress> Returs = new ConcurrentDictionary<string, RequesInProgress>();
+        public static bool MostrarLogsDeDebug { get; set; } = false;
 
         public static async Task SendData(this FluentSocket fluentSocket, object content, CancellationToken cancellationToken)
         {
@@ -35,6 +29,7 @@ namespace Fluent.Socket
 
         public static async Task<FluentReturnMessage> SendDataAndWait<TO>(this FluentSocket fluentSocket, object content, CancellationToken cancellationToken, TimeSpan timeOut = default) where TO : class
         {
+            var stopwatch = new Stopwatch(); stopwatch.Start();
             var contractBase = content as FluentMessageContractBase;
             var fluentMessageContract = contractBase ?? new FluentWaitMessageContract(fluentSocket.UseJson ? JsonConvert.SerializeObject(content) : content);
 
@@ -48,7 +43,10 @@ namespace Fluent.Socket
             Returs.TryAdd(fluentMessageContract.RequestId, request);
 
             await fluentSocket.SendInternalData(fluentMessageContract, cancellationToken);
+     
+            LogDeDebug($"SendDataAndWait({Thread.CurrentThread.ManagedThreadId}) {stopwatch.ElapsedMilliseconds}");
             var sucess = await WaitReturn(request);
+            LogDeDebug($"SendDataAndWaitRetorno({Thread.CurrentThread.ManagedThreadId}) {stopwatch.ElapsedMilliseconds}");
 
             Returs.TryRemove(fluentMessageContract.RequestId, out _);
 
@@ -150,6 +148,14 @@ namespace Fluent.Socket
                     await next();
                 }
             });
+        }
+
+        public static void LogDeDebug(string mensagem)
+        {
+            if (MostrarLogsDeDebug)
+            {
+                Console.WriteLine(mensagem);
+            }
         }
     }
 }

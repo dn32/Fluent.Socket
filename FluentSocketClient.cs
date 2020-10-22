@@ -44,7 +44,7 @@ namespace Fluent.Socket
             WebSocket?.Dispose();
         }
 
-        public static void Initialize(string url, IFluentSocketClientEvents events, string preIdentifier, CancellationToken cancellationToken, bool useJson = false)
+        public static async Task Initialize(string url, IFluentSocketClientEvents events, string preIdentifier, CancellationToken cancellationToken, bool useJson = false)
         {
             var instance = new FluentSocketClient(events, preIdentifier, url)
             {
@@ -54,8 +54,9 @@ namespace Fluent.Socket
 
             events.Initialize(instance, instance.SocketId);
 
-            _ = instance.ConectSocket();
-            _ = instance.StartReceivingData();
+            var t1 = instance.ConectSocket();
+            var t2 = instance.StartReceivingData();
+            await Task.WhenAll(t1, t2);
         }
 
         private async Task ConectSocket()
@@ -80,6 +81,7 @@ namespace Fluent.Socket
 
                     await Events.ConnectingAsync();
                     await ((ClientWebSocket)base.WebSocket).ConnectAsync(Uri, CancellationToken);
+                    await Events.SocketOpen();
 
                     var clientData = Events.GetClientData();
                     var ret = await this.SendDataAndWait<object>(new FluentWaitMessageContractRegister(clientData), CancellationToken);
