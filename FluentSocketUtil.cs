@@ -35,8 +35,9 @@ namespace Fluent.Socket
 
         public static async Task<FluentReturnMessage> SendDataAndWait<TO>(this FluentSocket fluentSocket, object content, CancellationToken cancellationToken, TimeSpan timeOut = default) where TO : class
         {
-            var contentObject = fluentSocket.UseJson ? JsonConvert.SerializeObject(content) : content;
-            var fluentMessageContract = new FluentWaitMessageContract(contentObject);
+            var contractBase = content as FluentMessageContractBase;
+            var fluentMessageContract = contractBase ?? new FluentWaitMessageContract(fluentSocket.UseJson ? JsonConvert.SerializeObject(content) : content);
+
             var request = new RequesInProgress
             {
                 SemaphoreSlim = new SemaphoreSlim(0),

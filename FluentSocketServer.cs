@@ -101,16 +101,15 @@ namespace Fluent.Socket
 
         private async Task ReceivedMessageFromClientAsync(FluentMessageContractBase message)
         {
-            if (message is FluentRegisterMessageContract register)
+            if (message is FluentWaitMessageContractRegister register)
             {
-                await Events.DataReceivedRegister(register.Content);
+                var returnContent = await Events.DataReceivedRegister(register.Content);
+                await ReturnToClient(register.RequestId, returnContent);
             }
             else if (message is FluentWaitMessageContract waitMesssage)
             {
                 var returnContent = await Events.DataReceivedAndWait(waitMesssage.Content);
-                var json = JsonConvert.SerializeObject(returnContent);
-                var returnContract = new FluentReturnMessageContract(json) { OriginalRequestId = waitMesssage.RequestId };
-                await this.SendInternalData(returnContract, CancellationToken);
+                await ReturnToClient(waitMesssage.RequestId, returnContent);
             }
             else if (message is FluentDefaultMessageContract defaultMessage)
             {
@@ -120,6 +119,13 @@ namespace Fluent.Socket
             {
                 await FluentSocketUtil.ReturnReceivedFromClient(returnMessage);
             }
+        }
+
+        private async Task ReturnToClient(string requestId, object returnContent)
+        {
+            var json = JsonConvert.SerializeObject(returnContent);
+            var returnContract = new FluentReturnMessageContract(json) { OriginalRequestId = requestId };
+            await this.SendInternalData(returnContract, CancellationToken);
         }
 
         #region DISPOSE

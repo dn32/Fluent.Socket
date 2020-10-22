@@ -3,9 +3,9 @@
 namespace Fluent.Socket.Contracts
 {
     [Serializable]
-    internal class FluentRegisterMessageContract : FluentMessageContractBase
+    internal class FluentWaitMessageContractRegister : FluentMessageContractBase
     {
-        internal FluentRegisterMessageContract(object content) : base(content) { }
-        protected FluentRegisterMessageContract() { }
+        internal FluentWaitMessageContractRegister(object content) : base(content) { }
+        protected FluentWaitMessageContractRegister() { }
     }
 }

@@ -18,7 +18,7 @@ namespace Fluent.Socket
         public string Url { get; set; }
         private new IFluentSocketClientEvents Events => base.Events as IFluentSocketClientEvents;
         public int ReconnectInterval { get; set; } = 2000;
-        public int PingInterval { get; set; } = 5000;
+        public int PingInterval { get; set; } = 1000;
 
         #endregion
 
@@ -66,7 +66,7 @@ namespace Fluent.Socket
                 {
                     if (base.WebSocket.State == WebSocketState.Open)
                     {
-                        await Task.Delay(PingInterval);
+                        await Task.Delay(PingInterval); // Melhorar esse processo
                         continue;
                     }
                     else
@@ -82,8 +82,9 @@ namespace Fluent.Socket
                     await ((ClientWebSocket)base.WebSocket).ConnectAsync(Uri, CancellationToken);
 
                     var clientData = Events.GetClientData();
-                    await this.SendInternalData(new FluentRegisterMessageContract(clientData), CancellationToken);
-                    await Events.ConnectedAsync();
+                    var ret = await this.SendDataAndWait<object>(new FluentWaitMessageContractRegister(clientData), CancellationToken);
+                    if (ret.Sucess == false) throw new TimeoutException();
+                    await Events.ConnectedAsync(ret);
                 }
                 catch (Exception ex)
                 {

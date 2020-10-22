@@ -8,7 +8,7 @@ namespace Fluent.Socket
         void Initialize(FluentSocketServer fluentSocket, string clientSocketId, HttpContext httpContext);
         async Task ClientConnected() => await Task.CompletedTask;
         async Task ClientDisconnected() => await Task.CompletedTask;
-        Task DataReceivedRegister(object content);
+        Task<object> DataReceivedRegister(object content);
         void Dispose();
     }
 }
