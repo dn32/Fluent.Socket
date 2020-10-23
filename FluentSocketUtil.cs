@@ -78,7 +78,7 @@ namespace Fluent.Socket
             if (fluentSocket.UseJson)
             {
                 var json = JsonConvert.SerializeObject(fluentMessageContract);
-                var data = Encoding.ASCII.GetBytes(json);
+                var data = Encoding.UTF8.GetBytes(json);
                 await fluentSocket.WebSocket.SendAsync(new ArraySegment<byte>(data, 0, data.Length), WebSocketMessageType.Text, true, cancellationToken);
             }
             else
